@@ -10,6 +10,10 @@ Prerequisites:
 
 Instructions:
 1. modify `main.tf` such that `resource "aws_lambda_function"` has the correct Discogs `USER_NAME` and `USER_API_KEY`.
+2. `cd lambda_functions`
+3. `pip install -r requirements.txt -t .`
+4. `zip -r lambda_function.zip .`
+5. `cd ..`
 2. terraform plan
 3. terraform apply
 
