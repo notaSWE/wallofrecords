@@ -1,6 +1,8 @@
 # wallofrecords
 Display your Discogs collection in Amazon S3
 
+![Wall of Records Demo](images/albums.JPG "Wall of Records Demo")
+
 ## Prerequisites:
 1. Discogs account
 2. Discogs collection (the more items the better this will look)
