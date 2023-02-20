@@ -20,10 +20,11 @@ Display your Discogs collection in Amazon S3
 3. terraform apply
 
 ## Local Option (no terraform/AWS required)
-1. Add Discogs Username/API key to `local_option/get_collection.py`
-2. `python3 local_option/get_collection.py`
+1. `cd local_option`
+1. Add Discogs Username/API key to `get_collection.py`
+2. `python3 get_collection.py`
 3. `python3 -m http.server`
-4. Browse to `127.0.0.1:8000/index.html` in a browser
+4. Browse to `127.0.0.1:8000` in a browser
 
 Notes:
 I have no clue how much the AWS infrastructure will cost but the lambda only fires once per day on its default cron schedule.  I set up a cost alarm for my billing tolerance and called it a day.
