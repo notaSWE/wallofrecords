@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Wall Of Records</title>
+	<style>
+		body {
+			background-color: black;
+		}
+
+		.grid-container {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+			grid-gap: 10px;
+			background-color: black;
+			overflow: hidden;
+		}
+
+		.grid-item {
+			position: relative;
+			width: 100%;
+			padding-top: 100%;
+		}
+
+		.grid-item img {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			border: 7px solid #ffffff;
+			transition: transform 0.2s ease-out;
+		}
+
+		.pulse {
+			animation: pulse-animation 1.2s infinite;
+			object-fit: cover;
+			z-index: 1;
+		}
+
+		@keyframes pulse-animation {
+			0% {
+				transform: scale(1);
+			}
+
+			90% {
+				transform: scale(1.4);
+			}
+
+			100% {
+				transform: scale(1);
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="grid-container"></div>
+
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script>
+		const $grid = $('.grid-container');
+		const imagesDir = 'thumbs/';
+
+		// Keep track of previous pulsed image
+		let prevIndex = null;
+
+		// Get all images from the directory
+		$.ajax({
+			url: imagesDir,
+			success: function (data) {
+				$(data).find("a").attr("href", function (i, val) {
+					if (val.match(/\.(jpe?g|png|gif)$/)) {
+						// Generate the grid item
+						let fname = val;
+						let url = imagesDir + val;
+						let id = i;
+						let $item = $('<div class="grid-item"><img id="img-' + id + '" src="' + url + '"></div>');
+						$grid.append($item);
+
+						// Attach a click handler to log the ID
+						$('#img-' + id).on('click', function () {
+							console.log(id);
+						});
+					}
+				});
+
+				// Select a random image to pulse
+				function pulseRandomImage() {
+					// Get all the images in the grid
+					let $images = $('.grid-item img');
+					// Select a random image from the grid
+					let $randomImage = $($images[Math.floor(Math.random() * $images.length)]);
+					if ($images.index($randomImage) !== prevIndex) { // Make sure the same image isn't pulsed twice in a row
+						pulseImage($randomImage); // Pulse the image at the chosen index
+						prevIndex = $images.eq($randomImage); // Store the index of the pulsed image
+					}
+				}
+
+				// Pulse an image
+				function pulseImage() {
+					// Get all images in the viewport
+					let $visibleImages = $('.grid-item img').filter(function () {
+						return $(this).isOnScreen();
+					});
+
+					// Pick a random image from the visible images
+					let $image = $visibleImages.eq(Math.floor(Math.random() * $visibleImages.length));
+
+					// Add the pulse class to the image
+					$image.addClass('pulse');
+
+					// Remove the pulse class after the animation finishes
+					setTimeout(function () {
+						$image.removeClass('pulse');
+					}, 1200);
+				}
+
+				// Call the pulseRandomImage function repeatedly
+				setInterval(pulseRandomImage, 1400); // 2000 milliseconds = 2 seconds
+			}
+		});
+
+		// Helper function to check if an element is on the screen
+		$.fn.isOnScreen = function () {
+			var element = this.get(0);
+			var bounds = element.getBoundingClientRect();
+			return bounds.bottom < window.innerHeight && bounds.bottom > 0;
+		};
+
+	</script>
+</body>
+
+</html>

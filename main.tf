@@ -47,7 +47,7 @@ resource "aws_s3_object" "thumbs_directory" {
 }
 
 resource "aws_iam_role" "lambda_exec" {
-  name = "lambda-exec-role"
+  name = "lambda-exec-role-${random_string.bucket_suffix.result}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -64,14 +64,14 @@ resource "aws_iam_role" "lambda_exec" {
 }
 
 resource "aws_iam_policy_attachment" "lambda_exec_attach" {
-  name       = "lambda_exec_attach"
+  name       = "lambda_exec_attach-${random_string.bucket_suffix.result}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   roles      = [aws_iam_role.lambda_exec.name]
 }
 
 resource "aws_lambda_function" "gather_discogs_collection" {
   filename         = "lambda_function.zip"
-  function_name    = "gather-discogs-collection"
+  function_name    = "gather-discogs-collection-${random_string.bucket_suffix.result}"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "index.handler"
   runtime          = "python3.9"
@@ -86,7 +86,7 @@ resource "aws_lambda_function" "gather_discogs_collection" {
 }
 
 resource "aws_iam_policy" "lambda_s3_policy" {
-  name        = "lambda-s3-policy"
+  name        = "lambda-s3-policy-${random_string.bucket_suffix.result}"
   policy      = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -113,9 +113,9 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_policy_attachment" {
 }
 
 resource "aws_cloudwatch_event_rule" "download_albums" {
-  name                = "download_albums"
+  name                = "download_albums-${random_string.bucket_suffix.result}"
   description         = "Trigger Lambda function every day at Noon UTC"
-  schedule_expression = "cron(0 12 * * ? *)" # Noon UTC
+  schedule_expression = "cron(* * * * ? *)" # Noon UTC
 }
 
 resource "aws_cloudwatch_event_target" "lambda_trigger" {
@@ -144,7 +144,7 @@ resource "aws_s3_bucket_policy" "album_photos_policy" {
         Sid = "AllowLambdaToGetObject"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/lambda-exec-role"
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/lambda-exec-role-${random_string.bucket_suffix.result}"
         }
         Action = [
           "s3:GetObject",

@@ -1,74 +1,154 @@
 <!DOCTYPE html>
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.101.0.min.js"></script>
-  <title>Wall of Records</title>
-  <style>
-    body {
-      background-color: black;
-    }
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      grid-gap: 10px;
-	  background-color: black;
-    }
-    .grid-item {
-      position: relative;
-      width: 100%;
-      padding-top: 100%;
-    }
-    .grid-item img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-	  border: 7px solid #ffffff;
-      transition: transform 0.2s ease-out;
-    }
-    .grid-item:hover img {
-      transform: scale(1.3);
-	  box-shadow: 0 0 30px #000000;
-      z-index: 1;
-    }
-  </style>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://sdk.amazonaws.com/js/aws-sdk-2.101.0.min.js"></script>
+	<title>Wall of Records</title>
+	<style>
+		body {
+			background-color: black;
+		}
+
+		.grid-container {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+			grid-gap: 10px;
+			background-color: black;
+			overflow: hidden;
+		}
+
+		.grid-item {
+			position: relative;
+			width: 100%;
+			padding-top: 100%;
+		}
+
+		.grid-item img {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			border: 7px solid #ffffff;
+			transition: transform 0.2s ease-out;
+		}
+
+		.pulse {
+			animation: pulse-animation 1.2s infinite;
+			object-fit: cover;
+			z-index: 1;
+		}
+
+		@keyframes pulse-animation {
+			0% {
+				transform: scale(1);
+			}
+
+			90% {
+				transform: scale(1.3);
+			}
+
+			100% {
+				transform: scale(1);
+			}
+		}
+	</style>
 </head>
+
 <body>
-  <div class="grid-container"></div>
+	<div class="grid-container"></div>
 	<script>
 		const $grid = $('.grid-container');
 		const bucketName = 'REPLACEWITHDYNAMICALLYNAMEDS3BUCKETNAME';
 		const s3Endpoint = `https://${bucketName}.s3.amazonaws.com`;
 
-		console.log(s3Endpoint);
+		// Keep track of previous pulsed image
+		let prevIndex = null;
 
 		fetch(`${s3Endpoint}/?list-type=2`)
-		  .then(response => response.text())
-		  .then(data => {
-			// Parse the XML response
-			let parser = new DOMParser();
-			let xmlDoc = parser.parseFromString(data, "text/xml");
-			let contents = xmlDoc.getElementsByTagName("Contents");
-			
-			// Generate grid items for each file
-			for (let i = 0; i < contents.length; i++) {
-			  let key = contents[i].getElementsByTagName("Key")[0].textContent;
-			  if (key.match(/\.(jpe?g|png|gif)$/)) {
-				let fname = key.replace("thumbs/", "");
-				let url = s3Endpoint + '/' + key;
-				let id = i;
-				let $item = $('<div class="grid-item"><img id="img-' + id + '" src="' + url + '"></div>');
-				$grid.append($item);
-				$('#img-' + id).on('click', function() {
-				  console.log(id);
-				});
-			  }
+			.then(response => response.text())
+			.then(data => {
+				// Parse the XML response
+				let parser = new DOMParser();
+				let xmlDoc = parser.parseFromString(data, "text/xml");
+				let contents = xmlDoc.getElementsByTagName("Contents");
+
+				// Shuffle randomly
+				contents = Array.from(contents);
+				shuffle(contents);
+
+				// Generate grid items for each file
+				for (let i = 0; i < contents.length; i++) {
+					let key = contents[i].getElementsByTagName("Key")[0].textContent;
+					if (key.match(/\.(jpe?g|png|gif)$/)) {
+						let fname = key.replace("thumbs/", "");
+						let url = s3Endpoint + '/' + key;
+						let id = i;
+						let $item = $('<div class="grid-item"><img id="img-' + id + '" src="' + url + '"></div>');
+						$grid.append($item);
+						$('#img-' + id).on('click', function () {
+							console.log(id);
+						});
+					}
+				}
+
+				// Select a random image to pulse
+				function pulseRandomImage() {
+					// Get all the images in the grid
+					let $images = $('.grid-item img');
+					// Select a random image from the grid
+					let $randomImage = $($images[Math.floor(Math.random() * $images.length)]);
+					if ($images.index($randomImage) !== prevIndex) { // Make sure the same image isn't pulsed twice in a row
+						pulseImage($randomImage); // Pulse the image at the chosen index
+						prevIndex = $images.eq($randomImage); // Store the index of the pulsed image
+					}
+				}
+
+				// Pulse an image
+				function pulseImage() {
+					// Get all images in the viewport
+					let $visibleImages = $('.grid-item img').filter(function () {
+						return $(this).isOnScreen();
+					});
+
+					// Pick a random image from the visible images
+					let $image = $visibleImages.eq(Math.floor(Math.random() * $visibleImages.length));
+
+					// Add the pulse class to the image
+					$image.addClass('pulse');
+
+					// Remove the pulse class after the animation finishes
+					setTimeout(function () {
+						$image.removeClass('pulse');
+					}, 1200);
+				}
+
+				// Call the pulseRandomImage function repeatedly
+				setInterval(pulseRandomImage, 1400); // 2000 milliseconds = 2 seconds
+
+			})
+			.catch(error => {
+				console.log(error);
+			});
+
+		function shuffle(array) {
+			for (var i = array.length - 1; i > 0; i--) {
+				var j = Math.floor(Math.random() * (i + 1));
+				var temp = array[i];
+				array[i] = array[j];
+				array[j] = temp;
 			}
-		  })
-		  .catch(error => {
-			console.log(error);
-		  });
+		};
+
+		$.fn.isOnScreen = function () {
+			var element = this.get(0);
+			var bounds = element.getBoundingClientRect();
+			return bounds.bottom < window.innerHeight && bounds.bottom > 0;
+		};
 	</script>
-</body></html>
+</body>
+
+</html>
